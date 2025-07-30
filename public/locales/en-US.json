@@ -1,0 +1,13 @@
+{
+  "hello": "hello en-us",
+  "world": "world en-us",
+  "about": {
+    "hello": "hello en-us",
+    "world": "world en-us"
+  },
+  "common": {
+    "about": {
+      "hello": "hello world en-us"
+    }
+  }
+}

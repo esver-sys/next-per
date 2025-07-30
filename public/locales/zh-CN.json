@@ -1,0 +1,12 @@
+{
+  "hello": "你好 中文",
+  "world": "世界 中文",
+  "about": {
+    "hello": "你好 中文"
+  },
+  "common": {
+    "about": {
+      "hello": "你好 中文"
+    }
+  }
+}
