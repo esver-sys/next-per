@@ -1,40 +1,39 @@
-name: Deploy Next.js to Server
+name: Deploy project to Tencent Server
 
 on:
   push:
     branches:
       - main
 
+# 配置工作流
 jobs:
   deploy:
+    # 设置运行环境
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build project
         run: npm run build
 
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v0.1.5
+      # 上传构建产物
+      - name: Upload artifact
+        uses: appleboy/scp-action@v0.1.5
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd /var/www/your-nextjs-app
-            git pull origin main
-            npm ci --production
-            npm run build
-            pm2 restart nextjs-app
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "public/**,src/**,package.json,package-lock.json,next.config.js,deploy.yml,deploy.sh"
+          target: ${{ secrets.SERVER_TARGET_PATH }}
+          rm: true

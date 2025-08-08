@@ -1,29 +1,34 @@
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
+import Image from "next/image";
 
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+    console.log("Files changed:", e.target.files);
+    
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      const fileList = Array.from(selectedFiles);
+      setFiles(fileList);
       setUploadStatus(null);
       
-      // 生成预览URL
-      const url = URL.createObjectURL(selectedFile);
-      setPreviewUrl(url);
+      // 生成预览URLs
+      const urls = fileList.map(file => URL.createObjectURL(file));
+      setPreviewUrls(urls);
     }
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      setUploadStatus("请选择一个文件");
+    if (files.length === 0) {
+      setUploadStatus("请选择至少一个文件");
       return;
     }
 
@@ -37,35 +42,50 @@ export default function Home() {
       // 这里可以实现真实的上传逻辑
       // 例如:
       // const formData = new FormData();
-      // formData.append("file", file);
+      // files.forEach(file => formData.append("files", file));
       // const response = await fetch("/api/upload", { method: "POST", body: formData });
       
-      setUploadStatus("文件上传成功!");
+      setUploadStatus(`成功上传 ${files.length} 个文件!`);
     } catch (error) {
-      setUploadStatus("上传失败，请重试");
+      setUploadStatus(`上传失败，请重试: ${error}`);
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleRemove = () => {
-    setFile(null);
-    setPreviewUrl(null);
+    setFiles([]);
+    setPreviewUrls([]);
     setUploadStatus(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    if (folderInputRef.current) {
+      folderInputRef.current.value = "";
+    }
+  };
+
+  const triggerFolderSelect = () => {
+    // 创建一个专门用于选择文件夹的input元素
+    const folderInput = document.createElement('input');
+    folderInput.setAttribute('type', 'file');
+    folderInput.setAttribute('webkitdirectory', '');
+    folderInput.addEventListener('change', (e) => {
+      handleFileChange(e as unknown as ChangeEvent<HTMLInputElement>);
+    }); 
+    folderInput.click();
   };
 
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 space-y-6">
+      <div className="max-w-2xl w-full mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 space-y-6">
         <h1 className="text-2xl font-bold text-center text-gray-800">文件上传</h1>
         
         <div className="space-y-4">
           <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-600 transition-colors">
             <input 
               type="file" 
+              multiple
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
@@ -74,42 +94,55 @@ export default function Home() {
             
             <label 
               htmlFor="fileInput" 
-              className="cursor-pointer flex flex-col items-center text-gray-600 hover:text-blue-500"
+              className="cursor-pointer flex flex-col items-center text-gray-600 hover:text-blue-500 mb-4"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
               <span className="mt-2 font-medium">点击选择文件</span>
-              <span className="text-sm text-gray-500">支持所有文件类型</span>
+              <span className="text-sm text-gray-500">支持多文件选择</span>
             </label>
+            
+            <button
+              onClick={triggerFolderSelect}
+              className="py-2 px-4 bg-green-500 hover:bg-green-600 text-white rounded-md font-medium transition-colors"
+            >
+              选择文件夹
+            </button>
           </div>
 
-          {previewUrl && file && (
+          {previewUrls.length > 0 && (
             <div className="border rounded-lg p-4 bg-gray-50">
-              <h3 className="font-medium text-gray-800 mb-2">文件预览:</h3>
+              <h3 className="font-medium text-gray-800 mb-2">文件预览 ({files.length} 个文件):</h3>
               
-              {file.type.startsWith("image/") ? (
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  className="max-w-full h-48 object-contain mx-auto rounded"
-                />
-              ) : (
-                <div className="flex items-center p-4 bg-white rounded border">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <div className="ml-4">
-                    <p className="font-medium text-gray-800 truncate max-w-xs">{file.name}</p>
-                    <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {files.map((file, index) => (
+                  <div key={index} className="flex items-center p-3 bg-white rounded border">
+                    {file.type.startsWith("image/") ? (
+                      <Image 
+                        src={previewUrls[index]} 
+                        alt={`Preview ${index}`} 
+                        width={64}
+                        height={64}
+                        unoptimized
+                        className="h-16 w-16 object-cover rounded mr-3"
+                      />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 truncate">{file.name}</p>
+                      <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
+                      <p className="text-xs text-gray-400">{file.type || "未知类型"}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
               
               <div className="mt-3 text-sm text-gray-600">
-                <p><span className="font-medium">文件名:</span> {file.name}</p>
-                <p><span className="font-medium">文件大小:</span> {(file.size / 1024).toFixed(2)} KB</p>
-                <p><span className="font-medium">文件类型:</span> {file.type || "未知"}</p>
+                <p><span className="font-medium">总计:</span> {files.length} 个文件</p>
               </div>
             </div>
           )}
@@ -129,21 +162,21 @@ export default function Home() {
           <div className="flex space-x-3">
             <button
               onClick={handleUpload}
-              disabled={isUploading || !file}
+              disabled={isUploading || files.length === 0}
               className={`flex-1 py-2 px-4 rounded-md text-white font-medium ${
-                isUploading || !file
+                isUploading || files.length === 0
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-500 hover:bg-blue-600"
               } transition-colors`}
             >
-              {isUploading ? "上传中..." : "上传文件"}
+              {isUploading ? "上传中..." : `上传文件 (${files.length})`}
             </button>
             
             <button
               onClick={handleRemove}
-              disabled={!file}
+              disabled={files.length === 0}
               className={`py-2 px-4 rounded-md font-medium ${
-                !file
+                files.length === 0
                   ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-gray-300 text-gray-700 hover:bg-gray-400"
               } transition-colors`}
